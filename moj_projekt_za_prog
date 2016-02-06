@@ -1,0 +1,91 @@
+import requests
+import re
+from time import strftime
+
+print('Prosimo počakajte, obdelujem podatke...')
+print('Postopek bo trajal približno minuto in pol.')
+
+def ali_ni_prazno(komentarji):
+    r = re.search(r'<div class="newscomments">\s*</div>',komentarji)
+    r2 = re.search(r'<div style="padding: 10px">Ta novica trenutno še nima komentarjev.</div>',komentarji)
+    
+    if (r is None) and (r2 is None):
+        return True
+    else:
+        return False
+    
+
+linki = {'sport' : [], 'novice' : [], 'kultura' : [], 'zabava' : [], 'tureavanture' : []}
+identiteta = {'sport' : [], 'novice' : [], 'kultura' : [], 'zabava' : [], 'tureavanture' : []}
+
+
+seznam_tem = ['sport', 'novice', 'kultura', 'zabava', 'tureavanture']
+for a in seznam_tem:
+    r = requests.get('http://www.rtvslo.si/{0}/arhiv/'.format(a))
+    besedilo =  r.text
+    linki[a].extend(re.findall(r'<a href="(.+?)" class="title">(?:.+?)</a>', besedilo))
+
+
+
+for tema, sez_linkov in linki.items():
+    for i in sez_linkov:
+        d = re.findall(r'(\d+)$', i)
+        identiteta[tema].extend(d)
+
+pozitivni = 0
+negativni = 0
+
+slovar_pozitivnih = {'sport' : 0, 'novice' : 0, 'kultura' : 0, 'zabava' : 0, 'tureavanture' : 0}
+slovar_negativnih = {'sport' : 0, 'novice' : 0, 'kultura' : 0, 'zabava' : 0, 'tureavanture' : 0}
+
+for tema, sez_cifr in identiteta.items():
+    for i in sez_cifr:
+        j = 0
+        r = requests.get('http://www.rtvslo.si/index.php?&c_mod=news&op=comments&func=ajax&id={0}&page={1}&hash=0&sort=asc'.format(i,j))
+        komentarji = r.text
+        kljucar = ali_ni_prazno(komentarji)
+        while kljucar:
+            ocene = re.findall(r'<span>(.)(\d+)</span>', komentarji)
+            for u,v in ocene:
+                if u == '+':
+                    pozitivni += int(v)
+                    slovar_pozitivnih[tema] += int(v)
+                else:
+                    negativni += int(v)
+                    slovar_negativnih[tema] += int(v) 
+            
+            j += 1
+            r = requests.get('http://www.rtvslo.si/index.php?&c_mod=news&op=comments&func=ajax&id={0}&page={1}&hash=0&sort=asc'.format(i,j))
+            komentarji = r.text
+            kljucar = ali_ni_prazno(komentarji)
+            
+            
+print('Shranjujem datoteke...')
+cas = strftime("%Y-%m-%d %H:%M:%S")
+with open('Rezultati analize podatkov s strani rtv', 'w', encoding='utf-8') as datoteka:
+                print('+', slovar_pozitivnih, file=datoteka)
+                print('-', slovar_negativnih,  file=datoteka)
+                print('Vseh pozitivnih komentarjev:', str(pozitivni), file= datoteka)
+                print('Vseh negativnih komentarjev:', str(negativni), file= datoteka)
+                print(cas, file = datoteka)
+
+            
+            
+print()
+print()
+print('Vseh ocen komentarjev:')
+print(pozitivni + negativni)
+print()
+print('Pozitivne ocene komentarjev skupno:')
+print(pozitivni)
+print()
+print('Negativne ocene komentarjev skupno:')
+print(negativni)
+print()
+print('Pozitivni po temah:')
+print(slovar_pozitivnih)
+print()
+print('Negativni po temah:')
+print(slovar_negativnih)
+print()
+print('Zakljucek?')
