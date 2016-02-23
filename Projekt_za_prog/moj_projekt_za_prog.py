@@ -52,7 +52,7 @@ for tema, sez_cifr in identiteta.items():
     for i in sez_cifr:
         r1 = requests.get('http://www.rtvslo.si/{0}/arhiv/{1}'.format(tema, i))
         text1 = r1.text
-        ocene_na_vrhu = re.findall(r'>Ocena (\d+\.?\d*) od (\d+) glasov<', text1)
+        ocene_na_vrhu = re.findall(r'>Ocena (\d+\.\d) od (\d+) glasov<', text1)
         if not ocene_na_vrhu:
             ocena_novice = -1
             stevilo_ocen = 0
