@@ -22,15 +22,15 @@ def zapisi_tabelo(slovarji, imena_polj, ime_datoteke):
         for slovar in slovarji:
             writer.writerow(slovar)
 
-linki = {'sport' : [], 'novice' : [], 'kultura' : [], 'zabava' : [], 'tureavanture' : []}
-identiteta = {'sport' : [], 'novice' : [], 'kultura' : [], 'zabava' : [], 'tureavanture' : []}
+linki = {'sport' : [], 'zdravje': [], 'kultura' : [], 'zabava' : [], 'tureavanture' : [], 'svet':[], 'slovenija':[], 'gospodarstvo':[], 'znanost-in-tehnologija':[]}
+identiteta = {'sport' : [], 'zdravje': [], 'kultura' : [], 'zabava' : [], 'tureavanture' : [], 'svet':[], 'slovenija':[], 'gospodarstvo':[], 'znanost-in-tehnologija':[]}
 
 
-seznam_tem = ['sport', 'novice', 'kultura', 'zabava', 'tureavanture']
+seznam_tem = ['sport', 'zdravje', 'kultura', 'zabava', 'tureavanture', 'svet', 'slovenija', 'gospodarstvo', 'znanost-in-tehnologija']
 for a in seznam_tem:
     r = requests.get('http://www.rtvslo.si/{0}/arhiv/'.format(a))
     besedilo =  r.text
-    linki[a].extend(re.findall(r'<a href="(.+?)" class="title">(?:.+?)</a>', besedilo))
+    linki[a].extend(re.findall(r'<a href="(.+?{0}.+?)" class="title">(?:.+?)</a>'.format(a), besedilo))
 
 seznam_slovarjev_stevilk = []
 
@@ -43,9 +43,9 @@ vsi = {'predznak': 'vseh_komentarjev', 'stevilo' : 0}
 pozitivni = {'predznak': 'pozitivnivnih_ocen', 'stevilo' : 0}
 negativni = {'predznak': 'negativninih_ocen', 'stevilo': 0}
 
-slovar_pozitivnih = {'predznak': 'pozitivninih_ocen', 'sport' : 0, 'novice' : 0, 'kultura' : 0, 'zabava' : 0, 'tureavanture' : 0}
-slovar_negativnih = {'predznak': 'negativninih_ocen', 'sport' : 0, 'novice' : 0, 'kultura' : 0, 'zabava' : 0, 'tureavanture' : 0}
-slovar_vseh = {'predznak': 'vseh_komentarjev', 'sport' : 0, 'novice' : 0, 'kultura' : 0, 'zabava' : 0, 'tureavanture' : 0}
+slovar_pozitivnih = {'predznak': 'pozitivninih_ocen','sport' : 0, 'zdravje': 0, 'kultura' : 0, 'zabava' : 0, 'tureavanture' : 0, 'svet': 0, 'slovenija': 0, 'gospodarstvo': 0, 'znanost-in-tehnologija': 0} 
+slovar_negativnih = {'predznak': 'negativninih_ocen', 'sport' : 0,'zdravje': 0, 'kultura' : 0, 'zabava' : 0, 'tureavanture' : 0, 'svet': 0, 'slovenija': 0, 'gospodarstvo': 0, 'znanost-in-tehnologija': 0}
+slovar_vseh = {'predznak': 'vseh_komentarjev', 'sport' : 0, 'zdravje': 0, 'kultura' : 0, 'zabava' : 0, 'tureavanture' : 0, 'svet': 0, 'slovenija': 0, 'gospodarstvo': 0, 'znanost-in-tehnologija': 0}
 
 
 for tema, sez_cifr in identiteta.items():
@@ -53,12 +53,8 @@ for tema, sez_cifr in identiteta.items():
         r1 = requests.get('http://www.rtvslo.si/{0}/arhiv/{1}'.format(tema, i))
         text1 = r1.text
         ocene_na_vrhu = re.findall(r'>Ocena (\d+\.\d) od (\d+) glasov<', text1)
-        if not ocene_na_vrhu:
-            ocena_novice = -1
-            stevilo_ocen = 0
-        else:
-            ocena_novice = float(ocene_na_vrhu[0][0])
-            stevilo_ocen = int(ocene_na_vrhu[0][1])
+        ocena_novice = float(ocene_na_vrhu[0][0])
+        stevilo_ocen = int(ocene_na_vrhu[0][1])
         stevilo_komentarjev = 0
         a = 0
         b = 0
@@ -96,7 +92,7 @@ seznam_slovarjev_po_stevilu = [vsi, pozitivni, negativni]
 
 print('Shranjujem datoteke...')
 
-zapisi_tabelo(seznam_slovarjev_po_temah, ['predznak', 'sport','novice', 'kultura', 'zabava', 'tureavanture'], 'projekt_podatki1.csv')
+zapisi_tabelo(seznam_slovarjev_po_temah, ['predznak', 'sport', 'zdravje', 'kultura', 'zabava', 'tureavanture', 'svet', 'slovenija', 'gospodarstvo', 'znanost-in-tehnologija'], 'projekt_podatki1.csv')
 zapisi_tabelo(seznam_slovarjev_po_stevilu, ['predznak', 'stevilo'], 'projekt_podatki2.csv')
 zapisi_tabelo(seznam_slovarjev_stevilk, ['id', 'tema', 'stevilo_komentarjev', 'stevilo_ocen_komentarjev', 'stevilo_pozitivnih', 'stevilo_negativnih', 'ocena_novice', 'stevilo_ocen'], 'projekt_tabela.csv')
 
