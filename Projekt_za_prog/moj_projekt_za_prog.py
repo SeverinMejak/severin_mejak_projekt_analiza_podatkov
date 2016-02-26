@@ -2,9 +2,8 @@ import requests
 import re
 import csv
 
-
 print('Prosimo počakajte, obdelujem podatke...')
-print('Postopek bo trajal približno tri minute.')
+print('Postopek bo trajal približno 35 minut.')
 
 def ali_ni_prazno(komentarji):
     r = re.search(r'<div class="newscomments">\s*</div>',komentarji)
@@ -22,39 +21,29 @@ def zapisi_tabelo(slovarji, imena_polj, ime_datoteke):
         for slovar in slovarji:
             writer.writerow(slovar)
 
-linki = {'sport' : [], 'zdravje': [], 'kultura' : [], 'zabava' : [], 'tureavanture' : [], 'svet':[], 'slovenija':[], 'gospodarstvo':[], 'znanost-in-tehnologija':[]}
 identiteta = {'sport' : [], 'zdravje': [], 'kultura' : [], 'zabava' : [], 'tureavanture' : [], 'svet':[], 'slovenija':[], 'gospodarstvo':[], 'znanost-in-tehnologija':[]}
 
-
 seznam_tem = ['sport', 'zdravje', 'kultura', 'zabava', 'tureavanture', 'svet', 'slovenija', 'gospodarstvo', 'znanost-in-tehnologija']
-for a in seznam_tem:
-    r = requests.get('http://www.rtvslo.si/{0}/arhiv/'.format(a))
-    besedilo =  r.text
-    linki[a].extend(re.findall(r'<a href="(.+?{0}.+?)" class="title">(?:.+?)</a>'.format(a), besedilo))
 
 seznam_slovarjev_stevilk = []
 
-for tema, sez_linkov in linki.items():
-    for i in sez_linkov:
-        d = re.findall(r'(\d+)$', i)
-        identiteta[tema].extend(d)
-
-vsi = {'predznak': 'vseh_komentarjev', 'stevilo' : 0}
-pozitivni = {'predznak': 'pozitivnivnih_ocen', 'stevilo' : 0}
-negativni = {'predznak': 'negativninih_ocen', 'stevilo': 0}
-
-slovar_pozitivnih = {'predznak': 'pozitivninih_ocen','sport' : 0, 'zdravje': 0, 'kultura' : 0, 'zabava' : 0, 'tureavanture' : 0, 'svet': 0, 'slovenija': 0, 'gospodarstvo': 0, 'znanost-in-tehnologija': 0} 
-slovar_negativnih = {'predznak': 'negativninih_ocen', 'sport' : 0,'zdravje': 0, 'kultura' : 0, 'zabava' : 0, 'tureavanture' : 0, 'svet': 0, 'slovenija': 0, 'gospodarstvo': 0, 'znanost-in-tehnologija': 0}
-slovar_vseh = {'predznak': 'vseh_komentarjev', 'sport' : 0, 'zdravje': 0, 'kultura' : 0, 'zabava' : 0, 'tureavanture' : 0, 'svet': 0, 'slovenija': 0, 'gospodarstvo': 0, 'znanost-in-tehnologija': 0}
-
-
+for a in seznam_tem:
+    for i in range(5):
+        r = requests.get('http://www.rtvslo.si/{0}/arhiv/?&page={1}'.format(a, i))
+        besedilo =  r.text
+        identiteta[a].extend(re.findall(r'<a href=".+?{0}.+?(\d+)" class="title">(?:.+?)</a>'.format(a), besedilo))
+    
 for tema, sez_cifr in identiteta.items():
     for i in sez_cifr:
-        r1 = requests.get('http://www.rtvslo.si/{0}/arhiv/{1}'.format(tema, i))
+        r1 = requests.get('http://www.rtvslo.si/arhiv/{0}'.format(i))
         text1 = r1.text
         ocene_na_vrhu = re.findall(r'>Ocena (\d+\.\d) od (\d+) glasov<', text1)
-        ocena_novice = float(ocene_na_vrhu[0][0])
-        stevilo_ocen = int(ocene_na_vrhu[0][1])
+        if not ocene_na_vrhu:
+            ocena_novice = -1
+            stevilo_ocen = 0
+        else:
+            ocena_novice = float(ocene_na_vrhu[0][0])
+            stevilo_ocen = int(ocene_na_vrhu[0][1])
         stevilo_komentarjev = 0
         a = 0
         b = 0
@@ -66,35 +55,21 @@ for tema, sez_cifr in identiteta.items():
             ocene = re.findall(r'<span>(.)(\d+)</span>', komentarji)
             for u,v in ocene:
                 if u == '+':
-                    pozitivni['stevilo'] += int(v)
-                    slovar_pozitivnih[tema] += int(v)
                     a += int(v)
                 else:
-                    negativni['stevilo'] += int(v)
-                    slovar_negativnih[tema] += int(v)
                     b += int(v)
                     
                 stevilo_komentarjev +=1
-                slovar_vseh[tema] += 1
-                vsi['stevilo'] += 1
-                
                 
             j += 1
             r = requests.get('http://www.rtvslo.si/index.php?&c_mod=news&op=comments&func=ajax&id={0}&page={1}&hash=0&sort=asc'.format(i,j))
             komentarji = r.text
             kljucar = ali_ni_prazno(komentarji)
 
-        seznam_slovarjev_stevilk.append({'id': i, 'tema': tema, 'stevilo_komentarjev': stevilo_komentarjev, 'stevilo_ocen_komentarjev': a+b, 'stevilo_pozitivnih': a, 'stevilo_negativnih': b, 'ocena_novice': ocena_novice, 'stevilo_ocen':stevilo_ocen}) 
-            
-
-seznam_slovarjev_po_temah = [slovar_vseh, slovar_pozitivnih, slovar_negativnih]
-seznam_slovarjev_po_stevilu = [vsi, pozitivni, negativni]
+        seznam_slovarjev_stevilk.append({'id': i, 'tema': tema, 'stevilo_komentarjev': (stevilo_komentarjev//2), 'stevilo_ocen_komentarjev': a+b, 'stevilo_pozitivnih': a, 'stevilo_negativnih': b, 'ocena_novice': ocena_novice, 'stevilo_ocen':stevilo_ocen}) 
 
 print('Shranjujem datoteke...')
 
-zapisi_tabelo(seznam_slovarjev_po_temah, ['predznak', 'sport', 'zdravje', 'kultura', 'zabava', 'tureavanture', 'svet', 'slovenija', 'gospodarstvo', 'znanost-in-tehnologija'], 'projekt_podatki1.csv')
-zapisi_tabelo(seznam_slovarjev_po_stevilu, ['predznak', 'stevilo'], 'projekt_podatki2.csv')
 zapisi_tabelo(seznam_slovarjev_stevilk, ['id', 'tema', 'stevilo_komentarjev', 'stevilo_ocen_komentarjev', 'stevilo_pozitivnih', 'stevilo_negativnih', 'ocena_novice', 'stevilo_ocen'], 'projekt_tabela.csv')
-
 
 print('Podrobnosti analize so shranjene v datotekah!')
