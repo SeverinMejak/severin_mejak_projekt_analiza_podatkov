@@ -31,7 +31,7 @@ for a in seznam_tem:
     for i in range(5):
         r = requests.get('http://www.rtvslo.si/{0}/arhiv/?&page={1}'.format(a, i))
         besedilo =  r.text
-        identiteta[a].extend(re.findall(r'<a href=".+?{0}.+?(\d+)" class="title">(?:.+?)</a>'.format(a), besedilo))
+        identiteta[a].extend(re.findall(r'<a href=".+?{0}.+?(\d+)" class="title">[^<].+?</a>'.format(a), besedilo))
     
 for tema, sez_cifr in identiteta.items():
     for i in sez_cifr:
